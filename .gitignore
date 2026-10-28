@@ -4,3 +4,4 @@ publish/runtime.log
 runtime.log
 *.user
 CpuProbe/
+publish/runtime.log

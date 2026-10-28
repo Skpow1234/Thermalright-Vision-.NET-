@@ -1,7 +1,7 @@
 {
   "mode": "auto",
   "fps": 60,
-  "fpsIdle": 1,
+  "fpsIdle": 60,
   "jpegQuality": 78,
   "gif": "yay-riven.gif",
   "rotate": 180,
