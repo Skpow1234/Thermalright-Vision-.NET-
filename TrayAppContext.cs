@@ -12,6 +12,7 @@ public sealed class TrayAppContext : ApplicationContext
     private readonly StatsReader _stats = new();
     private readonly string _baseDir = AppContext.BaseDirectory;
     private readonly object _gate = new();
+    private ConfigWatcher? _watcher;
     private WinUsbPanel? _panel;
     private DashboardRenderer? _renderer;
     private AppConfig _config;
@@ -22,6 +23,7 @@ public sealed class TrayAppContext : ApplicationContext
     {
         _config = AppConfig.Load(_baseDir);
         StartupHelper.Apply(_config.RunAtLogin, Path.Combine(_baseDir, "ThermalrightVision.exe"));
+        _watcher = new ConfigWatcher(_baseDir, RequestReload, _config.WatchConfig);
 
         _tray = new NotifyIcon
         {
@@ -47,11 +49,7 @@ public sealed class TrayAppContext : ApplicationContext
         return menu;
     }
 
-    private void RequestReload()
-    {
-        _reloadRequested = true;
-        _tray.ShowBalloonTip(1500, "Thermalright Vision", "Recargando config…", ToolTipIcon.Info);
-    }
+    private void RequestReload() => _reloadRequested = true;
 
     private void ToggleLogin()
     {
@@ -88,29 +86,54 @@ public sealed class TrayAppContext : ApplicationContext
                 ShowStatus();
 
                 var started = DateTime.UtcNow;
-                var frameDelay = TimeSpan.FromMilliseconds(1000.0 / Math.Max(1, _config.Fps));
-                int frames = 0;
+                int lastMediaFrame = -1;
                 while (!token.IsCancellationRequested && !_reloadRequested)
                 {
                     var frameStarted = DateTime.UtcNow;
                     DashboardRenderer? renderer;
                     WinUsbPanel? panel;
+                    AppConfig config;
                     lock (_gate)
                     {
                         renderer = _renderer;
                         panel = _panel;
+                        config = _config;
                     }
                     if (renderer is null || panel is null) break;
 
-                    var jpeg = renderer.RenderJpeg(_stats.Sample(), frameStarted - started, DateTime.Now.ToString("HH:mm"));
-                    panel.SendJpeg(jpeg.Span);
-                    frames++;
-                    if (frames == 1 || frames % 60 == 0)
-                        Log($"frames={frames} jpeg={jpeg.Length}");
+                    var elapsed = frameStarted - started;
+                    bool send = true;
+                    int sleepMs = Math.Max(1, 1000 / Math.Max(1, config.Fps));
+
+                    if (renderer.MediaMode)
+                    {
+                        int index = renderer.GetMediaFrameIndex(elapsed);
+                        int frameMs = renderer.GetMediaFrameDurationMs(index);
+                        if (index == lastMediaFrame)
+                        {
+                            // Mismo fotograma del GIF: no re-encodear a 60 FPS.
+                            send = false;
+                            sleepMs = config.FpsIdle <= 0
+                                ? Math.Max(16, frameMs)
+                                : Math.Max(16, 1000 / Math.Max(1, config.FpsIdle));
+                        }
+                        else
+                        {
+                            lastMediaFrame = index;
+                            sleepMs = Math.Min(sleepMs, Math.Max(16, frameMs));
+                        }
+                    }
+
+                    if (send)
+                    {
+                        var jpeg = renderer.RenderJpeg(_stats.Sample(), elapsed, DateTime.Now.ToString("HH:mm"));
+                        panel.SendJpeg(jpeg.Span);
+                    }
 
                     var spent = DateTime.UtcNow - frameStarted;
-                    if (spent < frameDelay)
-                        await Task.Delay(frameDelay - spent, token);
+                    var delay = TimeSpan.FromMilliseconds(sleepMs) - spent;
+                    if (delay > TimeSpan.Zero)
+                        await Task.Delay(delay, token);
                 }
 
                 if (_reloadRequested)
@@ -118,7 +141,10 @@ public sealed class TrayAppContext : ApplicationContext
                     _reloadRequested = false;
                     _config = AppConfig.Load(_baseDir);
                     StartupHelper.Apply(_config.RunAtLogin, Path.Combine(_baseDir, "ThermalrightVision.exe"));
+                    _watcher?.Dispose();
+                    _watcher = new ConfigWatcher(_baseDir, RequestReload, _config.WatchConfig);
                     _tray.ContextMenuStrip = BuildMenu();
+                    _tray.ShowBalloonTip(2000, "Thermalright Vision", "Config recargada", ToolTipIcon.Info);
                 }
             }
             catch (OperationCanceledException)
@@ -140,20 +166,7 @@ public sealed class TrayAppContext : ApplicationContext
     {
         string? media = _config.ResolveMedia(_baseDir);
         string? path = _config.UseMedia(media) ? media : null;
-        var next = new DashboardRenderer(
-            _panel!.Width,
-            _panel.Height,
-            path,
-            _config.JpegQuality,
-            _config.Rotate,
-            _config.FlipHorizontal,
-            _config.FlipVertical,
-            _config.UseCoverFit,
-            _config.Zoom,
-            _config.ShowClock,
-            _config.ShowCpu,
-            _config.ShowGpu,
-            _config.ShowRam);
+        var next = new DashboardRenderer(_panel!.Width, _panel.Height, path, _config);
 
         lock (_gate)
         {
@@ -164,7 +177,7 @@ public sealed class TrayAppContext : ApplicationContext
         _status = path is null
             ? "Estadísticas"
             : $"Media ({_config.Rotate}° {_config.Fit} x{_config.Zoom:0.##})";
-        Log($"OK PM={_panel.Pm} SUB={_panel.Sub} {_panel.Width}x{_panel.Height} mode={_status} media={path ?? "(none)"} rotate={_config.Rotate} fit={_config.Fit} zoom={_config.Zoom}");
+        Log($"OK PM={_panel.Pm} SUB={_panel.Sub} {_panel.Width}x{_panel.Height} mode={_status} media={path ?? "(none)"}");
         GC.Collect(2, GCCollectionMode.Optimized, blocking: false);
     }
 
@@ -182,6 +195,7 @@ public sealed class TrayAppContext : ApplicationContext
     private void Exit()
     {
         _cts.Cancel();
+        _watcher?.Dispose();
         _tray.Visible = false;
         _tray.Dispose();
         DisposePanel();
@@ -194,6 +208,7 @@ public sealed class TrayAppContext : ApplicationContext
         if (disposing)
         {
             _cts.Cancel();
+            _watcher?.Dispose();
             _tray.Dispose();
             DisposePanel();
             _stats.Dispose();
@@ -208,8 +223,8 @@ public sealed class TrayAppContext : ApplicationContext
     {
         try
         {
-            string path = Path.Combine(AppContext.BaseDirectory, "runtime.log");
-            File.AppendAllText(path, $"{DateTime.Now:HH:mm:ss} {message}{Environment.NewLine}");
+            File.AppendAllText(Path.Combine(AppContext.BaseDirectory, "runtime.log"),
+                $"{DateTime.Now:HH:mm:ss} {message}{Environment.NewLine}");
         }
         catch { }
     }

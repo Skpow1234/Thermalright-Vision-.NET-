@@ -13,3 +13,4 @@ C:\Users\Juan\Desktop\Ingenieria inversa\thermalright-vision-net\obj\Release\net
 C:\Users\Juan\Desktop\Ingenieria inversa\thermalright-vision-net\obj\Release\net8.0-windows\win-x64\ThermalrightVision.pdb
 C:\Users\Juan\Desktop\Ingenieria inversa\thermalright-vision-net\obj\Release\net8.0-windows\win-x64\ThermalrightVision.genruntimeconfig.cache
 C:\Users\Juan\Desktop\Ingenieria inversa\thermalright-vision-net\obj\Release\net8.0-windows\win-x64\ref\ThermalrightVision.dll
+C:\Users\Juan\Desktop\Ingenieria inversa\thermalright-vision-net\obj\Release\net8.0-windows\win-x64\ThermalrightVision.sourcelink.json

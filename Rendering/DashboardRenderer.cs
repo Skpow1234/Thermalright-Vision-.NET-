@@ -25,6 +25,7 @@ public sealed class DashboardRenderer : IDisposable
     private readonly bool _showCpu;
     private readonly bool _showGpu;
     private readonly bool _showRam;
+    private readonly Color _letterbox;
     private readonly Font _clockFont;
     private readonly Font _titleFont;
     private readonly Font _valueFont;
@@ -39,33 +40,26 @@ public sealed class DashboardRenderer : IDisposable
 
     public bool MediaMode => _mediaMode;
 
-    public DashboardRenderer(
-        int width,
-        int height,
-        string? mediaPath,
-        int jpegQuality,
-        int rotate,
-        bool flipH,
-        bool flipV,
-        bool coverFit = false,
-        double zoom = 1.0,
-        bool showClock = true,
-        bool showCpu = true,
-        bool showGpu = true,
-        bool showRam = true)
+    public int GetMediaFrameIndex(TimeSpan elapsed) => FrameIndex(elapsed);
+
+    public int GetMediaFrameDurationMs(int index) =>
+        index >= 0 && index < _durations.Length ? _durations[index] : 80;
+
+    public DashboardRenderer(int width, int height, string? mediaPath, AppConfig config)
     {
         _width = width;
         _height = height;
-        _rotate = ((rotate % 360) + 360) % 360;
-        _flipH = flipH;
-        _flipV = flipV;
-        _coverFit = coverFit;
-        _zoom = Math.Clamp(zoom <= 0 ? 1.0 : zoom, 0.1, 5.0);
-        _showClock = showClock;
-        _showCpu = showCpu;
-        _showGpu = showGpu;
-        _showRam = showRam;
-        int quality = Math.Clamp(jpegQuality, 40, 95);
+        _rotate = ((config.Rotate % 360) + 360) % 360;
+        _flipH = config.FlipHorizontal;
+        _flipV = config.FlipVertical;
+        _coverFit = config.UseCoverFit;
+        _zoom = Math.Clamp(config.Zoom <= 0 ? 1.0 : config.Zoom, 0.1, 5.0);
+        _showClock = config.ShowClock;
+        _showCpu = config.ShowCpu;
+        _showGpu = config.ShowGpu;
+        _showRam = config.ShowRam;
+        _letterbox = config.ParseLetterboxColor();
+        int quality = Math.Clamp(config.JpegQuality, 40, 95);
 
         _clockFont = new Font("Segoe UI Semibold", 30, FontStyle.Bold, GraphicsUnit.Pixel);
         _titleFont = new Font("Segoe UI Semibold", 24, FontStyle.Bold, GraphicsUnit.Pixel);
@@ -187,7 +181,7 @@ public sealed class DashboardRenderer : IDisposable
         int h = Math.Max(1, (int)(source.Height * scale));
         int x = (targetW - w) / 2;
         int y = (targetH - h) / 2;
-        g.Clear(Color.Black);
+        g.Clear(_letterbox);
         g.DrawImage(source, new Rectangle(x, y, w, h));
     }
 
@@ -236,7 +230,12 @@ public sealed class DashboardRenderer : IDisposable
 
         var cards = new List<(string Title, string Value, string Sub, Color Accent)>();
         if (_showCpu)
-            cards.Add(("CPU", Text(stats.CpuPercent, "%"), stats.CpuMhz is null ? "carga" : $"{stats.CpuMhz.Value / 1000:0.00} GHz", Color.FromArgb(126, 196, 255)));
+        {
+            string cpuSub = stats.CpuMhz is null ? "carga" : $"{stats.CpuMhz.Value / 1000:0.00} GHz";
+            if (stats.CpuTemp is not null)
+                cpuSub = $"{stats.CpuTemp:0}°   ·   {cpuSub}";
+            cards.Add(("CPU", Text(stats.CpuPercent, "%"), cpuSub, Color.FromArgb(126, 196, 255)));
+        }
         if (_showGpu)
             cards.Add(("GPU", Text(stats.GpuTemp, "°"), $"hot {Text(stats.GpuHotspot, "°")}   ·   {Text(stats.GpuPercent, "%")}", Color.FromArgb(255, 176, 92)));
         if (_showRam)

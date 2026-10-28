@@ -1,6 +1,7 @@
 {
   "mode": "auto",
   "fps": 15,
+  "fpsIdle": 2,
   "jpegQuality": 78,
   "gif": "",
   "rotate": 0,
@@ -8,10 +9,12 @@
   "flipVertical": false,
   "fit": "contain",
   "zoom": 1.0,
+  "letterboxColor": "#000000",
   "showClock": true,
   "showCpu": true,
   "showGpu": true,
   "showRam": true,
   "startHidden": false,
-  "runAtLogin": false
+  "runAtLogin": false,
+  "watchConfig": true
 }

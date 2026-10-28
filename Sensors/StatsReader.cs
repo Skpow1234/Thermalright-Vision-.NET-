@@ -6,6 +6,7 @@ public sealed class Stats
 {
     public double? CpuPercent { get; init; }
     public double? CpuMhz { get; init; }
+    public double? CpuTemp { get; init; }
     public double? GpuTemp { get; init; }
     public double? GpuHotspot { get; init; }
     public double? GpuPercent { get; init; }
@@ -121,6 +122,7 @@ public sealed class StatsReader : IDisposable
         {
             CpuPercent = cpu,
             CpuMhz = mhz,
+            CpuTemp = HwinfoCpuTemp.TryRead(),
             GpuTemp = Sensor(8, Celsius),
             GpuHotspot = Sensor(27, Celsius),
             GpuPercent = Sensor(19, Percent),
