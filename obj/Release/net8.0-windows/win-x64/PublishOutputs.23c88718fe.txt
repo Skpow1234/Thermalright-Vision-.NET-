@@ -1,0 +1,3 @@
+C:\Users\Juan\Desktop\Ingenieria inversa\thermalright-vision-net\publish\ThermalrightVision.pdb
+C:\Users\Juan\Desktop\Ingenieria inversa\thermalright-vision-net\publish\config.json
+C:\Users\Juan\Desktop\Ingenieria inversa\thermalright-vision-net\publish\ThermalrightVision.exe

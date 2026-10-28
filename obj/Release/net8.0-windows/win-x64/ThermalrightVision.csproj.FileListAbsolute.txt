@@ -1,0 +1,15 @@
+C:\Users\Juan\Desktop\Ingenieria inversa\thermalright-vision-net\bin\Release\net8.0-windows\win-x64\config.json
+C:\Users\Juan\Desktop\Ingenieria inversa\thermalright-vision-net\bin\Release\net8.0-windows\win-x64\ThermalrightVision.exe
+C:\Users\Juan\Desktop\Ingenieria inversa\thermalright-vision-net\bin\Release\net8.0-windows\win-x64\ThermalrightVision.deps.json
+C:\Users\Juan\Desktop\Ingenieria inversa\thermalright-vision-net\bin\Release\net8.0-windows\win-x64\ThermalrightVision.runtimeconfig.json
+C:\Users\Juan\Desktop\Ingenieria inversa\thermalright-vision-net\bin\Release\net8.0-windows\win-x64\ThermalrightVision.dll
+C:\Users\Juan\Desktop\Ingenieria inversa\thermalright-vision-net\bin\Release\net8.0-windows\win-x64\ThermalrightVision.pdb
+C:\Users\Juan\Desktop\Ingenieria inversa\thermalright-vision-net\obj\Release\net8.0-windows\win-x64\ThermalrightVision.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Juan\Desktop\Ingenieria inversa\thermalright-vision-net\obj\Release\net8.0-windows\win-x64\ThermalrightVision.AssemblyInfoInputs.cache
+C:\Users\Juan\Desktop\Ingenieria inversa\thermalright-vision-net\obj\Release\net8.0-windows\win-x64\ThermalrightVision.AssemblyInfo.cs
+C:\Users\Juan\Desktop\Ingenieria inversa\thermalright-vision-net\obj\Release\net8.0-windows\win-x64\ThermalrightVision.csproj.CoreCompileInputs.cache
+C:\Users\Juan\Desktop\Ingenieria inversa\thermalright-vision-net\obj\Release\net8.0-windows\win-x64\ThermalrightVision.dll
+C:\Users\Juan\Desktop\Ingenieria inversa\thermalright-vision-net\obj\Release\net8.0-windows\win-x64\refint\ThermalrightVision.dll
+C:\Users\Juan\Desktop\Ingenieria inversa\thermalright-vision-net\obj\Release\net8.0-windows\win-x64\ThermalrightVision.pdb
+C:\Users\Juan\Desktop\Ingenieria inversa\thermalright-vision-net\obj\Release\net8.0-windows\win-x64\ThermalrightVision.genruntimeconfig.cache
+C:\Users\Juan\Desktop\Ingenieria inversa\thermalright-vision-net\obj\Release\net8.0-windows\win-x64\ref\ThermalrightVision.dll

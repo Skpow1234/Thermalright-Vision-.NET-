@@ -1,0 +1,17 @@
+{
+  "mode": "auto",
+  "fps": 60,
+  "jpegQuality": 78,
+  "gif": "yay-riven.gif",
+  "rotate": 180,
+  "flipHorizontal": false,
+  "flipVertical": false,
+  "fit": "contain",
+  "zoom": 1.0,
+  "showClock": true,
+  "showCpu": true,
+  "showGpu": true,
+  "showRam": true,
+  "startHidden": false,
+  "runAtLogin": false
+}
