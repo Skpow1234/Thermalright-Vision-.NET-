@@ -10,7 +10,7 @@
         "projectUniqueName": "C:\\Users\\Juan\\Desktop\\Ingenieria inversa\\thermalright-vision-net\\ThermalrightVision.csproj",
         "projectName": "ThermalrightVision",
         "projectPath": "C:\\Users\\Juan\\Desktop\\Ingenieria inversa\\thermalright-vision-net\\ThermalrightVision.csproj",
-        "packagesPath": "C:\\Users\\Juan\\AppData\\Local\\Temp\\cursor-sandbox-cache\\a6377e172c5c0e37d624015ad6fa9677\\nuget",
+        "packagesPath": "C:\\Users\\Juan\\AppData\\Local\\Temp\\cursor-sandbox-cache\\bc75b675635eafa13eed13a5d3568801\\nuget",
         "outputPath": "C:\\Users\\Juan\\Desktop\\Ingenieria inversa\\thermalright-vision-net\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
@@ -43,14 +43,6 @@
       "frameworks": {
         "net8.0-windows7.0": {
           "targetAlias": "net8.0-windows",
-          "dependencies": {
-            "Microsoft.NET.ILLink.Tasks": {
-              "suppressParent": "All",
-              "target": "Package",
-              "version": "[8.0.33, )",
-              "autoReferenced": true
-            }
-          },
           "imports": [
             "net461",
             "net462",
@@ -71,11 +63,6 @@
             }
           },
           "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.427/PortableRuntimeIdentifierGraph.json"
-        }
-      },
-      "runtimes": {
-        "win-x64": {
-          "#import": []
         }
       }
     }

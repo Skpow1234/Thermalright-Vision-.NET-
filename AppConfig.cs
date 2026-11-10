@@ -14,6 +14,10 @@ public sealed class AppConfig
     public string Mode { get; set; } = "auto";
     public string Gif { get; set; } = "";
     public string Media { get; set; } = "";
+    public string[] Slideshow { get; set; } = Array.Empty<string>();
+    public string MediaFolder { get; set; } = "";
+    /// <summary>Seconds per image when the playlist has 2+ items. 0 = stay on the first.</summary>
+    public int SlideSeconds { get; set; } = 0;
 
     public int Rotate { get; set; } = 0;
     public bool FlipHorizontal { get; set; } = false;
@@ -72,13 +76,62 @@ public sealed class AppConfig
 
     public string? ResolveMedia(string baseDir)
     {
-        foreach (string candidate in new[] { Gif, Media })
+        var playlist = ResolvePlaylist(baseDir);
+        return playlist.Count > 0 ? playlist[0] : null;
+    }
+
+    public List<string> ResolvePlaylist(string baseDir)
+    {
+        var list = new List<string>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        void TryAdd(string? candidate)
         {
-            if (string.IsNullOrWhiteSpace(candidate)) continue;
+            if (string.IsNullOrWhiteSpace(candidate)) return;
             string path = Path.IsPathRooted(candidate) ? candidate : Path.Combine(baseDir, candidate);
-            if (File.Exists(path)) return path;
+            if (!File.Exists(path)) return;
+            string full = Path.GetFullPath(path);
+            if (seen.Add(full)) list.Add(full);
         }
-        return null;
+
+        if (Slideshow is { Length: > 0 })
+        {
+            foreach (string item in Slideshow)
+                TryAdd(item);
+        }
+
+        if (list.Count == 0 && !string.IsNullOrWhiteSpace(MediaFolder))
+        {
+            string folder = Path.IsPathRooted(MediaFolder)
+                ? MediaFolder
+                : Path.Combine(baseDir, MediaFolder);
+            if (Directory.Exists(folder))
+            {
+                foreach (string path in Directory.EnumerateFiles(folder)
+                             .Where(IsImageFile)
+                             .OrderBy(p => p, StringComparer.OrdinalIgnoreCase))
+                    TryAdd(path);
+            }
+        }
+
+        if (list.Count == 0)
+        {
+            TryAdd(Gif);
+            TryAdd(Media);
+        }
+
+        return list;
+    }
+
+    private static bool IsImageFile(string path)
+    {
+        string ext = Path.GetExtension(path);
+        return ext.Equals(".gif", StringComparison.OrdinalIgnoreCase)
+            || ext.Equals(".png", StringComparison.OrdinalIgnoreCase)
+            || ext.Equals(".jpg", StringComparison.OrdinalIgnoreCase)
+            || ext.Equals(".jpeg", StringComparison.OrdinalIgnoreCase)
+            || ext.Equals(".bmp", StringComparison.OrdinalIgnoreCase)
+            || ext.Equals(".webp", StringComparison.OrdinalIgnoreCase);
     }
 
     public bool UseMedia(string? mediaPath)

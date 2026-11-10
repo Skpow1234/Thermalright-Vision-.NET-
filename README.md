@@ -51,6 +51,17 @@ Ejemplo mínimo fluido (GIF continuo):
 }
 ```
 
+Slideshow (cada 5 minutos) o carpeta:
+
+```json
+{
+  "mediaFolder": "wallpapers",
+  "slideSeconds": 300,
+  "rotate": 180,
+  "fit": "contain"
+}
+```
+
 ---
 
 ## Todos los parámetros
@@ -62,6 +73,9 @@ Ejemplo mínimo fluido (GIF continuo):
 | `mode` | texto | `"auto"` | `auto` = sin archivo de media → estadísticas; con GIF/imagen → solo media. `stats` = siempre estadísticas. `media` = siempre media (si el archivo existe). |
 | `gif` | texto | `""` | Ruta a GIF o imagen (PNG/JPG). Relativa al `.exe` o absoluta. Vacío = no hay media. |
 | `media` | texto | `""` | Alias de `gif`. Se usa si `gif` está vacío. |
+| `slideshow` | lista | `[]` | Lista de GIFs/imágenes. Si tiene ítems, sustituye a `gif`/`media`. |
+| `mediaFolder` | texto | `""` | Carpeta con imágenes (orden alfabético). Se usa si `slideshow` está vacío. |
+| `slideSeconds` | número | `0` | Segundos por imagen cuando hay 2+. Ej. `300` = 5 min. `0` = no cambia. |
 
 ### Rendimiento / fluidez
 

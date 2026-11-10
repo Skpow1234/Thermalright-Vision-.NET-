@@ -16,6 +16,8 @@ public sealed class TrayAppContext : ApplicationContext
     private WinUsbPanel? _panel;
     private DashboardRenderer? _renderer;
     private AppConfig _config;
+    private List<string> _playlist = new();
+    private int _slideIndex;
     private volatile bool _reloadRequested;
     private string _status = "Iniciando…";
 
@@ -82,14 +84,21 @@ public sealed class TrayAppContext : ApplicationContext
                     _panel.Open(overrideSize);
                 }
 
-                RebuildRenderer();
+                RebuildRenderer(DateTime.UtcNow);
                 ShowStatus();
 
                 var started = DateTime.UtcNow;
                 int lastMediaFrame = -1;
+                byte[]? cachedJpeg = null;
                 while (!token.IsCancellationRequested && !_reloadRequested)
                 {
                     var frameStarted = DateTime.UtcNow;
+                    if (TryAdvanceSlide(started, frameStarted))
+                    {
+                        lastMediaFrame = -1;
+                        cachedJpeg = null;
+                    }
+
                     DashboardRenderer? renderer;
                     WinUsbPanel? panel;
                     AppConfig config;
@@ -102,7 +111,7 @@ public sealed class TrayAppContext : ApplicationContext
                     if (renderer is null || panel is null) break;
 
                     var elapsed = frameStarted - started;
-                    bool send = true;
+                    bool encode = true;
                     int sleepMs = Math.Max(1, 1000 / Math.Max(1, config.Fps));
 
                     if (renderer.MediaMode)
@@ -111,11 +120,19 @@ public sealed class TrayAppContext : ApplicationContext
                         int frameMs = renderer.GetMediaFrameDurationMs(index);
                         if (index == lastMediaFrame)
                         {
-                            // Mismo fotograma del GIF: no re-encodear a 60 FPS.
-                            send = false;
+                            // Same GIF/static frame: avoid re-encoding, but keep
+                            // re-sending JPEG or the panel falls back to its logo.
+                            encode = false;
                             sleepMs = config.FpsIdle <= 0
-                                ? Math.Max(16, frameMs)
+                                ? Math.Max(250, frameMs)
                                 : Math.Max(16, 1000 / Math.Max(1, config.FpsIdle));
+                            if (config.SlideSeconds > 0 && _playlist.Count > 1)
+                                sleepMs = Math.Min(sleepMs, 1000);
+
+                            if (cachedJpeg is not null)
+                                panel.SendJpeg(cachedJpeg);
+                            else
+                                encode = true;
                         }
                         else
                         {
@@ -124,10 +141,11 @@ public sealed class TrayAppContext : ApplicationContext
                         }
                     }
 
-                    if (send)
+                    if (encode)
                     {
                         var jpeg = renderer.RenderJpeg(_stats.Sample(), elapsed, DateTime.Now.ToString("HH:mm"));
-                        panel.SendJpeg(jpeg.Span);
+                        cachedJpeg = jpeg.ToArray();
+                        panel.SendJpeg(cachedJpeg);
                     }
 
                     var spent = DateTime.UtcNow - frameStarted;
@@ -162,10 +180,35 @@ public sealed class TrayAppContext : ApplicationContext
         }
     }
 
-    private void RebuildRenderer()
+    private bool TryAdvanceSlide(DateTime started, DateTime now)
     {
-        string? media = _config.ResolveMedia(_baseDir);
-        string? path = _config.UseMedia(media) ? media : null;
+        if (_config.SlideSeconds <= 0 || _playlist.Count <= 1) return false;
+        int period = Math.Max(1, _config.SlideSeconds);
+        int next = (int)((now - started).TotalSeconds / period) % _playlist.Count;
+        if (next == _slideIndex) return false;
+        RebuildRenderer(now, started);
+        return true;
+    }
+
+    private void RebuildRenderer(DateTime now, DateTime? started = null)
+    {
+        _playlist = _config.ResolvePlaylist(_baseDir);
+        string? path = null;
+        if (_playlist.Count > 0)
+        {
+            if (_config.SlideSeconds > 0 && _playlist.Count > 1)
+            {
+                int period = Math.Max(1, _config.SlideSeconds);
+                var origin = started ?? now;
+                _slideIndex = (int)((now - origin).TotalSeconds / period) % _playlist.Count;
+            }
+            else
+                _slideIndex = Math.Clamp(_slideIndex, 0, _playlist.Count - 1);
+
+            string media = _playlist[_slideIndex];
+            path = _config.UseMedia(media) ? media : null;
+        }
+
         var next = new DashboardRenderer(_panel!.Width, _panel.Height, path, _config);
 
         lock (_gate)
@@ -174,9 +217,10 @@ public sealed class TrayAppContext : ApplicationContext
             _renderer = next;
         }
 
+        string slide = _playlist.Count > 1 ? $" {_slideIndex + 1}/{_playlist.Count}" : "";
         _status = path is null
             ? "Estadísticas"
-            : $"Media ({_config.Rotate}° {_config.Fit} x{_config.Zoom:0.##})";
+            : $"Media{slide} ({_config.Rotate}° {_config.Fit} x{_config.Zoom:0.##})";
         Log($"OK PM={_panel.Pm} SUB={_panel.Sub} {_panel.Width}x{_panel.Height} mode={_status} media={path ?? "(none)"}");
         GC.Collect(2, GCCollectionMode.Optimized, blocking: false);
     }
